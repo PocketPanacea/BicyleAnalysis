@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "# This R script creates a sample submission via Random Forests\n# and plots the freature importance from the trained model\n\nlibrary(ggplot2)\nlibrary(lubridate)\nlibrary(randomForest)\n\nset.seed(1)\n\nsetwd(\"E:/R Workstation/Random Forest Model/\")\n\ntrain <- read.csv(\"input/train.csv\")\ntest <- read.csv(\"input/test.csv\")\n\n# Write to the log\ncat(sprintf(\"Training set has %d rows and %d columns\\n\", nrow(train), ncol(train)))\ncat(sprintf(\"Test set has %d rows and %d columns\\n\", nrow(test), ncol(test)))\n\nlibrary(randomForest)\n\nextractFeatures <- function(data) {\n  \n  features <- c(\"season\",\n                \"holiday\",\n                \"workingday\",\n                \"weather\",\n                \"temp\",\n                \"atemp\",\n                \"humidity\",\n                \"windspeed\",\n                \"hour\")\n  \n  data$hour <- hour(ymd_hms(data$datetime))\n  \n  return(data[,features])\n}\n\n# input and output normalized\ntrainFeature <- extractFeatures(train)\n\ntestFeature <- extractFeatures(test)\n\nsubmission <- data.frame(datatime = test$datetime,\n                         season = test$season,\n                         holiday = test$holiday,\n                         workingday = test$workingday,\n                         weather = test$weather,\n                         temp = test$temp,\n                         atemp = test$atemp,\n                         humidity = test$humidity,\n                         windspeed = test$windspeed,\n                         count = NA\n)\n\n# We only use past data to make predictions on the test set \n# so we train a new model for each test set cutoff point\n\n# extract basic number (y/m/d h) via function with ymd_hms\nfor (i_year in unique(year(ymd_hms(test$datetime)))) {\n  \n  for (i_month in unique(month(ymd_hms(test$datetime)))) {\n    \n    # Write process to the log with Random Forest\n    cat(\"Year: \", i_year, \"\\tMonth: \", i_month, \"\\n\")\n    \n    testLocs   <- year(ymd_hms(test$datetime)) == i_year & month(ymd_hms(test$datetime)) == i_month\n    testSubset <- test[testLocs,]\n    trainLocs  <- ymd_hms(train$datetime) <= min(ymd_hms(testSubset$datetime))\n    \n    rf <- randomForest(extractFeatures(train[trainLocs,]), train[trainLocs,\"count\"], ntree = 100)\n    \n    submission[testLocs, \"count\"] <- predict(rf, extractFeatures(testSubset))\n    \n  }\n  \n}\n\nwrite.csv(submission, file = \"output/submission_rf_output.csv\", row.names = FALSE)\n\n# Random Forest Importance\nrf <- randomForest(extractFeatures(train), train$count, ntree=100, importance=TRUE)\nimp <- importance(rf, type = 1)\nfeatureImportance <- data.frame(Feature=row.names(imp), Importance=imp[,1])\n\n# plot the features with library(ggplot)\np <- ggplot(featureImportance, aes(x = reorder(Feature, Importance), y = Importance)) +\n  geom_bar(stat = \"identity\", fill = \"#0099FF\") +\n  coord_flip() + \n  theme_light(base_size = 20) +\n  xlab(\"Importance\") +\n  ylab(\"\") + \n  ggtitle(\"Random Forest Feature Importance\\n\") +\n  theme(plot.title = element_text(size = 18))\n\nggsave(\"output/importance_output.png\", p)\n\n",
+    "created" : 1465485705606.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2030856112",
+    "id" : "5CE4DE93",
+    "lastKnownWriteTime" : 1465490370,
+    "last_content_update" : 1465490370083,
+    "path" : "E:/R Workstation/Random Forest Model/BicyleRF.R",
+    "project_path" : "BicyleRF.R",
+    "properties" : {
+        "docOutlineVisible" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

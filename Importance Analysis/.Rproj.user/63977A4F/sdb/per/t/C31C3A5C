@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "# This R script creates a sample submission via Random Forests\n# and plots the freature importance from the trained model\n\nlibrary(ggplot2)\nlibrary(lubridate)\nlibrary(plyr)\nlibrary(randomForest)\nlibrary(scales)\n\nset.seed(1)\n\nsetwd(\"E:/R Workstation/Random Forest Model/\")\n\ntrain <- read.csv(\"input/train.csv\")\ntest <- read.csv(\"input/test.csv\")\n\n# Write to the log\ncat(sprintf(\"Training set has %d rows and %d columns\\n\", nrow(train), ncol(train)))\ncat(sprintf(\"Test set has %d rows and %d columns\\n\", nrow(test), ncol(test)))\n\nlibrary(randomForest)\n\nextractFeatures <- function(data) {\n  \n  features <- c(\"season\",\n                \"holiday\",\n                \"workingday\",\n                \"weather\",\n                \"temp\",\n                \"atemp\",\n                \"humidity\",\n                \"windspeed\",\n                \"hour\")\n  \n  data$hour <- hour(ymd_hms(data$datetime))\n  data$month <- month(ymd_hms(data$datetime))\n  \n  return(data[,features])\n}\n\n# Train a model across all the training data and plot the variable importance\n\nsample_locs <- sample.int(nrow(train))\ncutoff <- as.integer(nrow(train)*0.7)\ninternal_train <- train[sample_locs[1:cutoff],]\ninternal_valid <- train[sample_locs[(cutoff+1):nrow(train)],]\n\nfeatures <- extractFeatures(internal_train)\n\nrf <- randomForest(features, internal_train$count, ntree=100, importance=TRUE)\n\nimp <- importance(rf, type=1)\nfeatureImportance <- data.frame(Feature=row.names(imp), Importance=imp[,1])\n\npartials <- data.frame()\n\nfor (i in seq_along(names(features))) {\n  partial <- partialPlot(rf, features, names(features)[i], plot=FALSE)\n  xt <- rescale(partial$x)\n  partials <- rbind(partials, data.frame(x=partial$x, xt=xt, y=partial$y, feature=names(features)[i]))\n}\n\nranges <- ddply(partials, \"feature\", function(d) {\n  r <- range(d$y)\n  data.frame(feature=d$feature[1], range=r[2]-r[1])\n})\n\nfeatures_to_plot <- ranges[ranges$range>0.05*max(ranges$range),\"feature\"]\n\nggplot(partials[partials$feature %in% features_to_plot,], aes(x=xt, y=y, color=feature)) +\n  geom_line(size=2) +\n  theme_light(base_size=16) +\n  xlab(\"Feature Range (Min to Max)\") +\n  ylab(\"Hourly Bike Rentals\") \n\n",
+    "created" : 1465717295084.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3943075944",
+    "id" : "C31C3A5C",
+    "lastKnownWriteTime" : 1465716861,
+    "last_content_update" : 1465716861,
+    "path" : "E:/R Workstation/Importance Analysis/partial_rf.R",
+    "project_path" : "partial_rf.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

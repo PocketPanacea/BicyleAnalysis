@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "# This R script creates a sample submission via Random Forests\n# and plots the freature importance from the trained model\n\nlibrary(ggplot2)\nlibrary(lubridate)\nlibrary(plyr)\nlibrary(randomForest)\nlibrary(scales)\n\nset.seed(1)\n\nsetwd(\"E:/R Workstation/Random Forest Model/\")\n\ntrain <- read.csv(\"input/train.csv\")\ntest <- read.csv(\"input/test.csv\")\n\n# Write to the log\ncat(sprintf(\"Training set has %d rows and %d columns\\n\", nrow(train), ncol(train)))\ncat(sprintf(\"Test set has %d rows and %d columns\\n\", nrow(test), ncol(test)))\n\nlibrary(randomForest)\n\nextractFeatures <- function(data) {\n  \n  features <- c(\"season\",\n                \"holiday\",\n                \"workingday\",\n                \"weather\",\n                \"temp\",\n                \"atemp\",\n                \"humidity\",\n                \"windspeed\",\n                \"hour\")\n  \n  data$hour <- hour(ymd_hms(data$datetime))\n  data$month <- month(ymd_hms(data$datetime))\n  \n  return(data[,features])\n}\n\n# Train a model across all the training data and plot the variable importance\n\nsample_locs <- sample.int(nrow(train))\ncutoff <- as.integer(nrow(train)*0.7)\ninternal_train <- train[sample_locs[1:cutoff],]\ninternal_valid <- train[sample_locs[(cutoff+1):nrow(train)],]\n\nfeatures <- extractFeatures(internal_train)\nrf <- randomForest(features, internal_train$count, ntree=100, importance=TRUE)\n\nvalid_features <- extractFeatures(internal_valid)\nvalid_features$Predictions <- predict(rf, extractFeatures(internal_valid))\nvalid_features$Actuals     <- internal_valid$count\n\nggplot(valid_features, aes(x=Actuals, y=Predictions)) +\n  geom_point() + \n  theme_light(base_size=16) +\n  xlab(\"Actual Hourly Bike Rentals\") +\n  ylab(\"Predicted Hourly Bike Rentals\") +\n  ggtitle(paste0(\"Correlation: \", round(cor(valid_features$Actuals, valid_features$Predictions), 3)))\n\n",
+    "created" : 1465718624087.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3396896900",
+    "id" : "AE1E5464",
+    "lastKnownWriteTime" : 1465718316,
+    "last_content_update" : 1465718316,
+    "path" : "E:/R Workstation/Importance Analysis/analysis_result.R",
+    "project_path" : "analysis_result.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
